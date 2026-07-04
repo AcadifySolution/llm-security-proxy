@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Security Proxy Trust Showcase</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(17, 24, 39, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --accent-color: #3b82f6;
+      --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      --success-color: #10b981;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      font-family: 'Outfit', sans-serif;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1100px;
+      padding: 3rem 1.5rem;
+      width: 100%;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin: 0 0 1rem 0;
+      background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+    }
+
+    p.subtitle {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      max-width: 650px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 4rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 2.5rem;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-gradient);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(59, 130, 246, 0.3);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .icon-wrapper svg {
+      width: 24px;
+      height: 24px;
+      color: #3b82f6;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+    }
+
+    .card p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .pipeline-section {
+      background: rgba(17, 24, 39, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 3rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2.5rem;
+      align-items: center;
+    }
+
+    .pipeline-info {
+      flex: 1 1 400px;
+    }
+
+    .pipeline-info h2 {
+      font-size: 2.25rem;
+      margin: 0 0 1.5rem 0;
+      font-weight: 700;
+    }
+
+    .pipeline-info p {
+      color: var(--text-secondary);
+      line-height: 1.7;
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    .pipeline-flow {
+      flex: 1 1 400px;
+      background: #020617;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .flow-step:last-child {
+      margin-bottom: 0;
+    }
+
+    .step-num {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      font-weight: bold;
+    }
+
+    .step-desc {
+      color: #93c5fd;
+    }
+
+    .tag-container {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .tag {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      font-size: 0.8rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2.25rem;
+      }
+      .pipeline-section {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge">Enterprise Trust Shield</div>
+      <h1>Secure Upstream AI Gateway</h1>
+      <p class="subtitle">Ensuring your data stays private and safe before sending requests to external LLM providers like OpenAI and Anthropic.</p>
+    </header>
+
+    <div class="grid">
+      <!-- Card 1 -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <!-- Shield Key Icon -->
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+        </div>
+        <h3>PII Redaction</h3>
+        <p>Scans and redacts emails, SSNs, credit cards, telephone numbers, and custom templates automatically to comply with HIPAA, GDPR, and CCPA regulations.</p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <!-- Firewall Icon -->
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+        </div>
+        <h3>Prompt Guardrails</h3>
+        <p>Blocks adversarial prompt injections, system override overrides, and toxic content before they reach external LLMs, protecting from data leakages.</p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <!-- Chart Icon -->
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 00-2-2H7a2 2 0 00-2 2v10m14 0V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14m0 0h2a2 2 0 002-2z"></path>
+          </svg>
+        </div>
+        <h3>Signed Audit Logs</h3>
+        <p>Logs all safety events as structured JSON telemetry with optional HMAC-SHA256 log signing, providing verification trails for SOC2 and safety audits.</p>
+      </div>
+    </div>
+
+    <div class="pipeline-section">
+      <div class="pipeline-info">
+        <h2>Enterprise-Grade Security Pipeline</h2>
+        <p>Our proxy implements a low-latency gateway designed to fit directly into your existing OpenAI SDK setups. Simply swap your base URL and let our security layer handle compliance automatically.</p>
+        <div class="tag-container">
+          <span class="tag">SOC2 Ready</span>
+          <span class="tag">HIPAA Compliant</span>
+          <span class="tag">GDPR Compliant</span>
+        </div>
+      </div>
+      <div class="pipeline-flow">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-desc">Intercept prompt payload from application</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-desc">Validate token lengths and threat score</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-desc">Redact PII & format with safe placeholders</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-desc">Log securely with cryptographic signing keys</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">5</div>
+          <div class="step-desc">Forward clean prompt to OpenAI / Anthropic</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
