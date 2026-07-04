@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  security-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: acadify/llm-security-proxy:latest
+    container_name: llm-security-proxy
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=development
+      - DEBUG=true
+      - REDACT_PII=true
+      - ENABLE_GUARDRAILS=true
+      - PII_ENTITIES_TO_FILTER=EMAIL_ADDRESS,PHONE_NUMBER,US_SSN,CREDIT_CARD,IP_ADDRESS
+      # Optional: set upstream credentials to forward calls
+      # - OPENAI_API_KEY=your-api-key-here
+    volumes:
+      # Map logs folder locally to view compliance streams
+      - ./logs:/var/log/llm-security-proxy
+    restart: unless-stopped
