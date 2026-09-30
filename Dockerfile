@@ -1,49 +1,28 @@
-# Stage 1: Build dependencies
+# syntax=docker/dockerfile:1
+
 FROM python:3.11-slim AS builder
 
-WORKDIR /app
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
+WORKDIR /build
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN python -m pip install --no-cache-dir --user -r requirements.txt
 
-
-# Stage 2: Runtime image
 FROM python:3.11-slim AS runner
 
 WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/root/.local/bin:$PATH"
+RUN groupadd --gid 10001 appgroup     && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin appuser     && mkdir -p /var/log/llm-security-proxy     && chown -R appuser:appgroup /var/log/llm-security-proxy
 
-# Create a non-privileged user and group for running the proxy service
-RUN groupadd -g 10001 appgroup && \
-    useradd -u 10001 -g appgroup -m -s /sbin/nologin appuser
-
-# Copy installed python packages from builder stage
 COPY --from=builder /root/.local /home/appuser/.local
-ENV PATH="/home/appuser/.local/bin:${PATH}"
+COPY --chown=appuser:appgroup proxy /app/proxy
 
-# Create audit logging directory and set ownership
-RUN mkdir -p /var/log/llm-security-proxy && \
-    chown -R appuser:appgroup /var/log/llm-security-proxy && \
-    chmod -R 755 /var/log/llm-security-proxy
-
-COPY --chown=appuser:appgroup proxy/ /app/proxy/
+ENV PATH="/home/appuser/.local/bin:$PATH"
+ENV HOST=0.0.0.0 PORT=8080
+ENV AUDIT_LOG_PATH=/var/log/llm-security-proxy/audit.log
 
 USER appuser
-
 EXPOSE 8080
 
-ENV PORT=8080
-ENV HOST=0.0.0.0
-ENV AUDIT_LOG_PATH=/var/log/llm-security-proxy/audit.log
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3).read()"
 
 CMD ["uvicorn", "proxy.main:app", "--host", "0.0.0.0", "--port", "8080"]
