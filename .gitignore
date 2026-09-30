@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
+# Runtime
+*.log
+logs/
+*.db
+*.sqlite
+*.sqlite3
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+.terraform.lock.hcl
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
