@@ -1,38 +1,43 @@
 # Security Policy
 
-This project is a reference security gateway for LLM traffic. It provides policy-enforcement primitives but does not itself establish regulatory certification.
+This repository implements a reference security gateway for LLM traffic. It provides enforceable controls, but it is not a certification and does not by itself establish GDPR, HIPAA, SOC 2, or other regulatory compliance.
 
 ## Security controls
 
-The proxy can enforce:
+The proxy supports:
 
 - client authentication with an API key
-- prompt and request-size budgets
+- request and prompt size budgets
+- bounded message counts
 - prompt-injection screening
 - configurable PII redaction
-- structured audit logging
-- optional HMAC signing of audit events
+- structured security audit events
+- optional HMAC-SHA256 audit signing
 - non-root container execution
-- health/readiness endpoints
-- explicit upstream provider configuration
+- health/readiness probes
+- upstream request IDs
 
 ## Important limitations
 
-The included injection detector is heuristic and should not be treated as complete protection against prompt injection, jailbreaks, or malicious tool output.
+The prompt-injection detector is heuristic. No pattern list can guarantee complete detection of jailbreaks or indirect prompt injection.
 
-The regex PII detector is a baseline. Production deployments handling sensitive data should use a tested entity detector and add domain-specific patterns.
+The built-in PII detector is also a baseline. Production deployments processing regulated or high-risk data should use a tested entity-recognition solution and domain-specific validation.
 
-Before public deployment, add:
+The current upstream adapter is OpenAI-compatible. Additional provider adapters should preserve the same security pipeline and policy boundaries.
 
-- identity-based authorization and tenant isolation
-- rate limiting at the edge
-- TLS termination
-- upstream allowlists and egress controls
-- key rotation
-- secrets manager integration
-- SIEM retention controls
-- incident response procedures
-- red-team security evaluation
-- provider-specific privacy and retention review
+## Production requirements
 
-Never commit real API keys or sensitive prompts.
+Before exposing this proxy to untrusted clients, add:
+
+- identity-based authentication and authorization
+- tenant isolation
+- edge rate limiting and abuse controls
+- TLS termination and certificate management
+- upstream host allowlisting / egress controls
+- secret-manager integration and key rotation
+- centralized log retention and access control
+- security monitoring and alerting
+- red-team testing for prompt injection and data leakage
+- provider-specific retention/residency review
+
+Never commit API keys, raw prompts, customer data, or sensitive audit payloads.
