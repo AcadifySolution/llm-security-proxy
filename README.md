@@ -1,10 +1,10 @@
 # Enterprise LLM Security Proxy
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Security Level](https://img.shields.io/badge/Security-Enterprise--Grade-blue.svg)](#)
-[![Compliance](https://img.shields.io/badge/Compliance-SOC2%20%7C%20GDPR%20%7C%20HIPAA-green.svg)](#)
+[![Security](https://img.shields.io/badge/Security-Policy%20Gateway-blue.svg)](SECURITY.md)
+[![Quality](https://github.com/AcadifySolution/llm-security-proxy/actions/workflows/quality.yml/badge.svg)](https://github.com/AcadifySolution/llm-security-proxy/actions/workflows/quality.yml)
 
-An enterprise-grade, high-performance security proxy designed to filter user prompts, redact Personally Identifiable Information (PII), inspect for injection payloads, and audit LLM interactions *before* data is transmitted to public model providers (e.g., OpenAI, Anthropic).
+An security gateway for designed to filter user prompts, redact Personally Identifiable Information (PII), inspect for injection payloads, and audit LLM interactions *before* data is transmitted to public model providers (e.g., OpenAI, Anthropic).
 
 ---
 
@@ -77,7 +77,7 @@ This security gateway intercepts chat completion requests, executing a synchrono
 │   ├── __init__.py
 │   ├── config.py               # Settings loader (Pydantic)
 │   ├── guardrails.py           # Jailbreak & injection heuristics
-│   ├── logger.py               # SOC2 compliant JSON & cryptographic auditor
+│   ├── logger.py               # structured JSON audit logging with optional HMAC signing
 │   ├── main.py                 # FastAPI application routes
 │   └── redactor.py             # Regular-expression & NLP PII redaction
 └── terraform/
@@ -217,7 +217,12 @@ The application is configured using environment variables or a `.env` file in th
 | `AUDIT_LOG_PATH` | string | `/var/log/...` | Target file path for JSON audit logs |
 | `SIGN_AUDIT_LOGS` | bool | `false` | Enable cryptographic HMAC-SHA256 log signing |
 | `LOG_SIGNING_KEY` | string | `None` | HMAC secret key used for signing logs |
-| `OPENAI_API_KEY` | string | `None` | Upstream provider key (if empty, runs mock mode) |
+| `OPENAI_API_KEY` | string | `None` | Upstream provider key; empty uses local mock mode |
+| `REQUIRE_API_KEY` | bool | `true` | Require proxy client authentication outside development without a configured key |
+| `PROXY_API_KEY` | string | `None` | Client API key for the security gateway |
+| `MAX_MESSAGES` | int | `100` | Maximum messages accepted per request |
+| `MAX_MESSAGE_CHARS` | int | `200000` | Maximum total message characters |
+| `MAX_REQUEST_BODY_BYTES` | int | `1000000` | Maximum HTTP request body size |
 
 ---
 
@@ -226,7 +231,7 @@ The application is configured using environment variables or a `.env` file in th
 A complete production deployment plan is included inside the `/terraform` folder. This skeleton provisions:
 - An **AWS ECS Fargate Cluster** with autoscaling security proxy container instances.
 - An **AWS Application Load Balancer** sitting behind **AWS WAFv2** web application firewalls.
-- **KMS Encrypted CloudWatch Log Groups** to store audit trails in compliance with SOC2 Trust Principles.
+- **KMS Encrypted CloudWatch Log Groups** to store audit trails in compliance with audit logging and operational governance.
 - **AWS Secrets Manager** integration for securing upstream OpenAI/Anthropic API keys.
 
 To run the infrastructure skeleton:
@@ -237,6 +242,11 @@ terraform plan
 ```
 
 ---
+
+
+## Security posture
+
+This project is a security gateway reference implementation. The built-in pattern detector and regex-based PII detector are useful baseline controls, not complete protection. For production use, add identity-based authorization, rate limiting, TLS, egress allowlists, secret management, tenant isolation, centralized audit retention, and adversarial testing. See [SECURITY.md](SECURITY.md).
 
 ## License
 
