@@ -4,7 +4,7 @@ LLM Security Proxy application.
 
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request, status
@@ -43,8 +43,10 @@ class ChatMessage(BaseModel):
 
 class ChatCompletionRequest(BaseModel):
     model: str = Field(..., min_length=1, max_length=200)
-    messages: List[ChatMessage] = Field(..., min_length=1, max_length=settings.MAX_MESSAGES)
-    temperature: Optional[float] = Field(default=1.0, ge=0.0, le=2.0)
+    messages: list[ChatMessage] = Field(
+        ..., min_length=1, max_length=settings.MAX_MESSAGES
+    )
+    temperature: float | None = Field(default=1.0, ge=0.0, le=2.0)
     stream: bool = False
 
 
@@ -74,9 +76,8 @@ def _authenticate(x_api_key: str | None, authorization: str | None) -> None:
         )
 
 
-def _prompt_text(messages: List[ChatMessage]) -> str:
-    return "
-".join(msg.content for msg in messages)
+def _prompt_text(messages: list[ChatMessage]) -> str:
+    return "\n".join(msg.content for msg in messages)
 
 
 @app.middleware("http")
@@ -122,9 +123,7 @@ async def health_check():
 
 @app.get("/readyz", status_code=status.HTTP_200_OK)
 async def readiness_check():
-    upstream_configured = bool(
-        settings.OPENAI_API_KEY or settings.ANTHROPIC_API_KEY
-    )
+    upstream_configured = bool(settings.OPENAI_API_KEY or settings.ANTHROPIC_API_KEY)
     return {
         "status": "ready",
         "upstream_configured": upstream_configured,
@@ -147,10 +146,13 @@ async def proxy_chat_completions(
     if len(full_prompt_text) > settings.MAX_MESSAGE_CHARS:
         raise HTTPException(
             status_code=413,
-            detail={"error": "Prompt exceeds configured character limit.", "request_id": request_id},
+            detail={
+                "error": "Prompt exceeds configured character limit.",
+                "request_id": request_id,
+            },
         )
 
-    metadata: Dict[str, Any] = {
+    metadata: dict[str, Any] = {
         "ip_address": request.client.host if request.client else "unknown",
         "user_agent": request.headers.get("user-agent", "unknown"),
         "request_id": request_id,
@@ -177,7 +179,7 @@ async def proxy_chat_completions(
             },
         )
 
-    redacted_messages: List[ChatMessage] = []
+    redacted_messages: list[ChatMessage] = []
     total_redacted_info: list = []
 
     for message in payload.messages:

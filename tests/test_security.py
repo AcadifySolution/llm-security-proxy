@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from proxy.config import settings
 from proxy.main import app
 
-
 client = TestClient(app)
 
 
@@ -41,7 +40,10 @@ def test_large_request_is_rejected():
     try:
         response = client.post(
             "/v1/chat/completions",
-            json={"model": "gpt-4", "messages": [{"role": "user", "content": "123456"}]},
+            json={
+                "model": "gpt-4",
+                "messages": [{"role": "user", "content": "123456"}],
+            },
         )
         assert response.status_code == 413
     finally:
