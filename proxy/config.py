@@ -2,8 +2,6 @@
 Configuration for the LLM Security Proxy.
 """
 
-from typing import Optional
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,13 +20,13 @@ class Settings(BaseSettings):
 
     # Client authentication. Required outside development unless explicitly disabled.
     REQUIRE_API_KEY: bool = True
-    PROXY_API_KEY: Optional[str] = None
+    PROXY_API_KEY: str | None = None
 
     # Upstream providers
     OPENAI_API_BASE: str = "https://api.openai.com/v1"
-    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_BASE: str = "https://api.anthropic.com/v1"
-    ANTHROPIC_API_KEY: Optional[str] = None
+    ANTHROPIC_API_KEY: str | None = None
 
     # Request limits / budgets
     MAX_PROMPT_TOKENS: int = 4096
@@ -52,7 +50,7 @@ class Settings(BaseSettings):
     # Audit
     AUDIT_LOG_PATH: str = "/var/log/llm-security-proxy/audit.log"
     SIGN_AUDIT_LOGS: bool = False
-    LOG_SIGNING_KEY: Optional[str] = None
+    LOG_SIGNING_KEY: str | None = None
 
 
 settings = Settings()

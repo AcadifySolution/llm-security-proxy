@@ -42,7 +42,7 @@ resource "aws_subnet" "public" {
   }
 }
 
-data.aws_availability_zones.available {}
+data "aws_availability_zones" "available" {}
 
 # --- Security KMS Key for Audit Log Encryption ---
 resource "aws_kms_key" "log_key" {

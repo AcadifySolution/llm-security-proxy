@@ -3,28 +3,27 @@ Prompt security guardrails.
 """
 
 import re
-from typing import List, Tuple
 
 from proxy.config import settings
 
 
 class GuardrailEngine:
     def __init__(self):
-        self.injection_keywords: List[str] = [
-            r"ignores+(?:alls+)?previouss+instructions",
-            r"systems+(?:override|bypass)",
-            r"yous+ares+nows+(?:a|an)s+unrestricted",
-            r"developers+mode",
-            r"dos+anythings+nows+dan",
-            r"acts+ass+as+computers+terminals+withs+nos+restrictions",
+        self.injection_keywords: list[str] = [
+            r"ignore\s+(?:all\s+)?previous\s+instructions",
+            r"system\s+(?:override|bypass)",
+            r"you\s+are\s+now\s+(?:a|an)\s+unrestricted",
+            r"developer\s+mode",
+            r"do\s+anything\s+now\s+dan",
+            r"act\s+as\s+a\s+computer\s+terminal\s+with\s+no\s+restrictions",
             r"jailbreak",
-            r"bypasss+safetys+filters",
+            r"bypass\s+safety\s+filters",
         ]
         self.compiled_keywords = [
             re.compile(pattern, re.IGNORECASE) for pattern in self.injection_keywords
         ]
 
-    def check_injection(self, prompt: str) -> Tuple[bool, float, str]:
+    def check_injection(self, prompt: str) -> tuple[bool, float, str]:
         if not settings.ENABLE_GUARDRAILS:
             return False, 0.0, "Guardrails are disabled"
 
@@ -49,5 +48,5 @@ class GuardrailEngine:
 
         return False, 0.0, "Prompt passed security filters"
 
-    def _run_ml_guard_inference(self, prompt: str) -> Tuple[bool, float, str]:
+    def _run_ml_guard_inference(self, prompt: str) -> tuple[bool, float, str]:
         return False, 0.0, ""

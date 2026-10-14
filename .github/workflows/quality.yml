@@ -62,3 +62,18 @@ jobs:
           languages: python
       - uses: github/codeql-action/autobuild@v3
       - uses: github/codeql-action/analyze@v3
+
+  terraform:
+    name: Terraform validation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Format
+        run: terraform fmt -check -recursive terraform
+      - name: Initialise without backend
+        working-directory: terraform
+        run: terraform init -backend=false -input=false
+      - name: Validate
+        working-directory: terraform
+        run: terraform validate
