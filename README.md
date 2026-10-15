@@ -1,12 +1,21 @@
-# Enterprise LLM Security Proxy
+# LLM Security Proxy — FastAPI Prompt Screening and PII Redaction
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Security](https://img.shields.io/badge/Security-Policy%20Gateway-blue.svg)](SECURITY.md)
 [![Quality](https://github.com/AcadifySolution/llm-security-proxy/actions/workflows/quality.yml/badge.svg)](https://github.com/AcadifySolution/llm-security-proxy/actions/workflows/quality.yml)
 
-An security gateway for designed to filter user prompts, redact Personally Identifiable Information (PII), inspect for injection payloads, and audit LLM interactions *before* data is transmitted to public model providers (e.g., OpenAI, Anthropic).
+A FastAPI gateway for screening prompts, redacting pattern-matched personal information, and recording audit events before forwarding configured LLM requests.
 
 ---
+
+## Choose a starting point
+
+Use this reference gateway to study request filtering before connecting a model
+provider. Review the [proxy source](proxy/) and [tests](tests/) to understand
+which inputs are screened and which cases require additional controls.
+
+For dataset-based output checks, explore [AI Evals Framework](https://github.com/AcadifySolution/ai-evals-framework).
+For retrieval applications, explore [Enterprise RAG Boilerplate](https://github.com/AcadifySolution/enterprise-rag-boilerplate).
 
 ## Why LLM Security Proxy?
 
@@ -15,16 +24,16 @@ Organizations using public LLM models risk exposing sensitive intellectual prope
 This security gateway intercepts chat completion requests, executing a synchronous multi-phase validation pipeline:
 
 1. **Length Validation:** Prevents denial-of-wallet / payload-stuffing attacks.
-2. **Guardrails Engine:** Screens inputs using high-accuracy pattern classifiers for system overrides and jailbreaks.
+2. **Guardrails Engine:** Screens inputs using configured regular-expression patterns for system overrides and jailbreaks.
 3. **PII Redactor:** Scans for email addresses, credit cards, SSNs, phone numbers, and IP addresses, replacing them with generic placeholders (e.g., `[REDACTED_EMAIL_ADDRESS]`).
-4. **Audit Logger:** Outputs structured JSON telemetry logs with optional **cryptographic HMAC-SHA256 signatures** to guarantee log integrity.
+4. **Audit Logger:** Outputs structured JSON telemetry logs with optional **cryptographic HMAC-SHA256 signatures** to support verification of signed records.
 5. **Upstream Forwarding:** Routes requests safely to OpenAI or Anthropic, returning the results transparently to the client application.
 
 ---
 
 ## System Architecture
 
-```
+```text
                                   +------------------------------------+
                                   |         Enterprise Client          |
                                   +-----------------+------------------+
@@ -66,7 +75,7 @@ This security gateway intercepts chat completion requests, executing a synchrono
 
 ## Repository Structure
 
-```
+```text
 .
 ├── Dockerfile                  # Multi-stage secure production build
 ├── LICENSE                     # MIT License
@@ -91,6 +100,7 @@ This security gateway intercepts chat completion requests, executing a synchrono
 ## Quickstart
 
 ### Prerequisites
+
 - Docker & Docker Compose
 - Python 3.11+ (for running locally without Docker)
 
@@ -98,9 +108,11 @@ This security gateway intercepts chat completion requests, executing a synchrono
 
 1. Clone the repository.
 2. Build and start the services using Docker Compose:
+
    ```bash
    docker-compose up --build
    ```
+
 3. The proxy will start listening on `http://localhost:8080`.
 
 ---
@@ -112,6 +124,7 @@ The proxy replicates the OpenAI endpoint format (`/v1/chat/completions`) so that
 ### Route: `POST /v1/chat/completions`
 
 **Request Payload:**
+
 ```json
 {
   "model": "gpt-4",
@@ -125,9 +138,11 @@ The proxy replicates the OpenAI endpoint format (`/v1/chat/completions`) so that
 ```
 
 #### Security Validation Phase 1: Injection Blocked
-Because the prompt attempted a jailbreak override ("*ignore previous instructions*"), the Guardrails engine returns a `400 Bad Request` and writes a **BLOCKED** event to the log file:
+
+Because the prompt attempted a jailbreak override ("_ignore previous instructions_"), the Guardrails engine returns a `400 Bad Request` and writes a **BLOCKED** event to the log file:
 
 **Response (400 Bad Request):**
+
 ```json
 {
   "detail": {
@@ -139,9 +154,11 @@ Because the prompt attempted a jailbreak override ("*ignore previous instruction
 ```
 
 #### Security Validation Phase 2: Success & PII Redacted
+
 If no jailbreaks are found, the proxy redacts emails and phone numbers, passes the scrubbed prompt to the LLM, and attaches proxy audit metrics to the return json:
 
 **Response (200 OK):**
+
 ```json
 {
   "id": "chatcmpl-mock-security-proxy-id",
@@ -171,7 +188,8 @@ If no jailbreaks are found, the proxy redacts emails and phone numbers, passes t
 ```
 
 **Underlying Forwarded Prompt (Sent to Upstream LLM):**
-```
+
+```text
 Please send invoices to [REDACTED_EMAIL_ADDRESS] and call [REDACTED_PHONE_NUMBER].
 ```
 
@@ -205,36 +223,38 @@ All proxy events are logged as standard JSON. If `SIGN_AUDIT_LOGS` is enabled, a
 
 The application is configured using environment variables or a `.env` file in the root directory:
 
-| Environment Variable | Type | Default | Description |
-|---|---|---|---|
-| `HOST` | string | `0.0.0.0` | Bind IP host for Uvicorn |
-| `PORT` | int | `8080` | Bind port for Uvicorn |
-| `DEBUG` | bool | `false` | Enable live-reloading |
-| `REDACT_PII` | bool | `true` | Enable/disable PII redaction module |
-| `PII_ENTITIES_TO_FILTER`| string | `EMAIL_ADDRESS,...` | Comma-separated list of entities to scan |
-| `ENABLE_GUARDRAILS` | bool | `true` | Enable/disable jailbreak pattern filters |
-| `MAX_PROMPT_TOKENS` | int | `4096` | Max size limit for prompts |
-| `AUDIT_LOG_PATH` | string | `/var/log/...` | Target file path for JSON audit logs |
-| `SIGN_AUDIT_LOGS` | bool | `false` | Enable cryptographic HMAC-SHA256 log signing |
-| `LOG_SIGNING_KEY` | string | `None` | HMAC secret key used for signing logs |
-| `OPENAI_API_KEY` | string | `None` | Upstream provider key; empty uses local mock mode |
-| `REQUIRE_API_KEY` | bool | `true` | Require proxy client authentication outside development without a configured key |
-| `PROXY_API_KEY` | string | `None` | Client API key for the security gateway |
-| `MAX_MESSAGES` | int | `100` | Maximum messages accepted per request |
-| `MAX_MESSAGE_CHARS` | int | `200000` | Maximum total message characters |
-| `MAX_REQUEST_BODY_BYTES` | int | `1000000` | Maximum HTTP request body size |
+| Environment Variable     | Type   | Default             | Description                                                                      |
+| ------------------------ | ------ | ------------------- | -------------------------------------------------------------------------------- |
+| `HOST`                   | string | `0.0.0.0`           | Bind IP host for Uvicorn                                                         |
+| `PORT`                   | int    | `8080`              | Bind port for Uvicorn                                                            |
+| `DEBUG`                  | bool   | `false`             | Enable live-reloading                                                            |
+| `REDACT_PII`             | bool   | `true`              | Enable/disable PII redaction module                                              |
+| `PII_ENTITIES_TO_FILTER` | string | `EMAIL_ADDRESS,...` | Comma-separated list of entities to scan                                         |
+| `ENABLE_GUARDRAILS`      | bool   | `true`              | Enable/disable jailbreak pattern filters                                         |
+| `MAX_PROMPT_TOKENS`      | int    | `4096`              | Max size limit for prompts                                                       |
+| `AUDIT_LOG_PATH`         | string | `/var/log/...`      | Target file path for JSON audit logs                                             |
+| `SIGN_AUDIT_LOGS`        | bool   | `false`             | Enable cryptographic HMAC-SHA256 log signing                                     |
+| `LOG_SIGNING_KEY`        | string | `None`              | HMAC secret key used for signing logs                                            |
+| `OPENAI_API_KEY`         | string | `None`              | Upstream provider key; empty uses local mock mode                                |
+| `REQUIRE_API_KEY`        | bool   | `true`              | Require proxy client authentication outside development without a configured key |
+| `PROXY_API_KEY`          | string | `None`              | Client API key for the security gateway                                          |
+| `MAX_MESSAGES`           | int    | `100`               | Maximum messages accepted per request                                            |
+| `MAX_MESSAGE_CHARS`      | int    | `200000`            | Maximum total message characters                                                 |
+| `MAX_REQUEST_BODY_BYTES` | int    | `1000000`           | Maximum HTTP request body size                                                   |
 
 ---
 
 ## AWS Enterprise Deployment
 
 A complete production deployment plan is included inside the `/terraform` folder. This skeleton provisions:
+
 - An **AWS ECS Fargate Cluster** with autoscaling security proxy container instances.
 - An **AWS Application Load Balancer** sitting behind **AWS WAFv2** web application firewalls.
 - **KMS Encrypted CloudWatch Log Groups** to store audit trails in compliance with audit logging and operational governance.
 - **AWS Secrets Manager** integration for securing upstream OpenAI/Anthropic API keys.
 
 To run the infrastructure skeleton:
+
 ```bash
 cd terraform/
 terraform init
@@ -242,7 +262,6 @@ terraform plan
 ```
 
 ---
-
 
 ## Security posture
 
